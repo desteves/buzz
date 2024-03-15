@@ -26,14 +26,8 @@ var googleOauthConfig = &oauth2.Config{
 const oauthGoogleUrlAPI = "https://www.googleapis.com/oauth2/v2/userinfo?access_token="
 
 func oauthGoogleLogin(w http.ResponseWriter, r *http.Request) {
-
-	// Create oauthState cookie
 	oauthState := generateStateOauthCookie(w)
 
-	/*
-		AuthCodeURL receive state that is a token to protect the user from CSRF attacks. You must always provide a non-empty string and
-		validate that it matches the the state query parameter on your redirect callback.
-	*/
 	u := googleOauthConfig.AuthCodeURL(oauthState)
 	http.Redirect(w, r, u, http.StatusTemporaryRedirect)
 }
@@ -47,48 +41,13 @@ func oauthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
-	// fmt.Println(r.FormValue("code"))
 	data, err := getUserDataFromGoogle(r.FormValue("code"))
 	if err != nil {
 		log.Println(err.Error())
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
-
-	// GetOrCreate User in your db.
-	// Redirect or response with a token.
-	// More code .....
-	// fmt.Printf("UserInfo: %s\n", data)
 	w.Write(data)
-
-	// // Read the HTML template file
-	// tmplFile, err := ioutil.ReadFile("./templates/welcome.html")
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
-	// // Parse the template
-	// t := template.Must(template.New("html").Parse(string(tmplFile)))
-
-	// UserInfo: {
-	// 	"id": "105630908885014381855",
-	// 	"email": "diana@pulumi.com",
-	// 	"verified_email": true,
-	// 	"name": "Diana Esteves",
-	// 	"given_name": "Diana",
-	// 	"family_name": "Esteves",
-	// 	"picture": "https://lh3.googleusercontent.com/a/ACg8ocIeQugr0fxzdXtYdxVezUcoVwXrJFis_WuRz-hI28zbvQ=s96-c",
-	// 	"locale": "en",
-	// 	"hd": "pulumi.com"
-	//   }
-
-	// Create a data structure to pass values to the template
-	// Execute the template with the data and write the result to the ResponseWriter
-	// err = t.Execute(w, data)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
 }
 
 func generateStateOauthCookie(w http.ResponseWriter) string {

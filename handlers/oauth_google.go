@@ -1,25 +1,25 @@
 package handlers
 
 import (
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"net/http"
+	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"context"
 	"log"
-	"encoding/base64"
-	"crypto/rand"
+	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
-// Scopes: OAuth 2.0 scopes provide a way to limit the amount of access that is granted to an access token.
 var googleOauthConfig = &oauth2.Config{
 	RedirectURL:  "http://localhost:8000/auth/google/callback",
 	ClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
 	ClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
-	Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+	Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
 	Endpoint:     google.Endpoint,
 }
 
@@ -31,8 +31,8 @@ func oauthGoogleLogin(w http.ResponseWriter, r *http.Request) {
 	oauthState := generateStateOauthCookie(w)
 
 	/*
-	AuthCodeURL receive state that is a token to protect the user from CSRF attacks. You must always provide a non-empty string and
-	validate that it matches the the state query parameter on your redirect callback.
+		AuthCodeURL receive state that is a token to protect the user from CSRF attacks. You must always provide a non-empty string and
+		validate that it matches the the state query parameter on your redirect callback.
 	*/
 	u := googleOauthConfig.AuthCodeURL(oauthState)
 	http.Redirect(w, r, u, http.StatusTemporaryRedirect)
@@ -47,7 +47,7 @@ func oauthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
-
+	fmt.Println(r.FormValue("code"))
 	data, err := getUserDataFromGoogle(r.FormValue("code"))
 	if err != nil {
 		log.Println(err.Error())
@@ -58,7 +58,37 @@ func oauthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 	// GetOrCreate User in your db.
 	// Redirect or response with a token.
 	// More code .....
-	fmt.Fprintf(w, "UserInfo: %s\n", data)
+	// fmt.Printf("UserInfo: %s\n", data)
+	w.Write(data)
+
+	// // Read the HTML template file
+	// tmplFile, err := ioutil.ReadFile("./templates/welcome.html")
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// // Parse the template
+	// t := template.Must(template.New("html").Parse(string(tmplFile)))
+
+	// UserInfo: {
+	// 	"id": "105630908885014381855",
+	// 	"email": "diana@pulumi.com",
+	// 	"verified_email": true,
+	// 	"name": "Diana Esteves",
+	// 	"given_name": "Diana",
+	// 	"family_name": "Esteves",
+	// 	"picture": "https://lh3.googleusercontent.com/a/ACg8ocIeQugr0fxzdXtYdxVezUcoVwXrJFis_WuRz-hI28zbvQ=s96-c",
+	// 	"locale": "en",
+	// 	"hd": "pulumi.com"
+	//   }
+
+	// Create a data structure to pass values to the template
+	// Execute the template with the data and write the result to the ResponseWriter
+	// err = t.Execute(w, data)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
 }
 
 func generateStateOauthCookie(w http.ResponseWriter) string {

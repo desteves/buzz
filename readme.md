@@ -21,16 +21,21 @@ Note: the later uses [Pulumi ESC](https://www.pulumi.com/product/esc/) for secre
 
 ## Bundle
 
-```
-# sans secrets management
-docker login
-docker build . -t nullstring/buzz:dev
-docker push
+```bash
+TAG="nullstring/buzz:dev"
+docker build . -t $TAG
+docker push $TAG
 
-# with pulumi esc + 1password integration ✨🔐✨
+####################################################
+# sans secrets management #
+docker login
+####################################################
+# OR with pulumi esc + 1password integration ✨🔐✨ #
 esc run buzz-dev-environment  -- bash -c 'echo "$PAT" | docker login -u $U --password-stdin'
-docker build . -t nullstring/buzz:dev
-docker push
+####################################################
+
+docker build . -t $TAG
+docker push $TAG
 ```
 
 Note: the later uses [Pulumi ESC](https://www.pulumi.com/product/esc/) for secrets management.

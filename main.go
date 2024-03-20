@@ -1,16 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	"log"
-	"github.com/douglasmakey/oauth2-example/handlers"
+	"net/http"
+
+	"github.com/desteves/buzz/handlers"
 )
 
+// main is the entry point for the application.
 func main() {
-	// We create a simple server using http.Server and run.
+	// Create a new server and set the handler.
 	server := &http.Server{
-		Addr: fmt.Sprintf(":8000"),
+		Addr:    ":8000",
 		Handler: handlers.New(),
 	}
 

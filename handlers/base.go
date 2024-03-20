@@ -7,9 +7,9 @@ import (
 func New() http.Handler {
 	mux := http.NewServeMux()
 	// Root
-	mux.Handle("/",  http.FileServer(http.Dir("templates/")))
+	mux.Handle("/", http.FileServer(http.Dir("templates/")))
 
-	// OauthGoogle
+	// OAuth with Google
 	mux.HandleFunc("/auth/google/login", oauthGoogleLogin)
 	mux.HandleFunc("/auth/google/callback", oauthGoogleCallback)
 

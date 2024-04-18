@@ -2,6 +2,9 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Buzz!</title>
     <style>
         .gsi-material-button {
             -moz-user-select: none;
@@ -116,12 +119,29 @@
             background-color: black;
             /* sets background color to black */
             color: white;
+            text-align: center;
             /* sets font color to white */
         }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            /* Adjust as needed */
+        }
+
+        .centered {
+            text-align: center;
+        }
     </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
 </head>
 
 <body>
+    <h1>Welcome to Buzz!</h1>
+    <img src="buzz.jpg" alt="Buzz App" width="30%">
     <div class="btn white darken-6 col s12">
         <a href="/auth/google/login" style="text-transform:none">
             <!-- https://developers.google.com/identity/branding-guidelines -->
@@ -151,7 +171,44 @@
                 </div>
             </button>
         </a>
+    </div> </br></br>
+    <form id="myForm">
+        <label for="a">access token:</label><br>
+        <input type="text" id="a" name="a"><br>
+        <label for="p">phrase:</label><br>
+        <input type="text" id="p" name="p"><br><br>
+        <input type="button" class="gsi-material-button" value="🐝🤖✨" onclick="updateContent()">
+    </form>
+
+
+    <div id="updatedContent">
     </div>
+    </div>
+    <script>
+        function updateContent() {
+            // Get form data
+            var formData = {
+                a: $("#a").val(),
+                p: $("#p").val()
+            };
+
+            // Make a POST request to the server
+            $.ajax({
+                type: "POST",
+                url: "/submit",
+                data: JSON.stringify(formData),
+                contentType: "application/json",
+                success: function (data) {
+                    // Update the content with the response
+                    $("#updatedContent").html(data);
+                },
+                error: function (jqXHR, textStatus, errorThrown) {
+                    console.error("Error:", textStatus, errorThrown);
+                }
+            });
+        }
+    </script>
+
 </body>
 
 </html>

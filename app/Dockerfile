@@ -16,8 +16,9 @@ FROM --platform=linux/amd64 gcr.io/distroless/base-debian11 AS build-release-sta
 WORKDIR /
 COPY --from=build-stage /buzz /buzz
 
-#  Set environment variables
+#  Set environment variables, placeholders to indicate what the app needs
 ENV GOOGLE_OAUTH_CLIENT_ID=abc123 \
-    GOOGLE_OAUTH_CLIENT_SECRET=xyz789
+    GOOGLE_OAUTH_CLIENT_SECRET=xyz789 \
+    GEMINI_API_KEY=gemini123 
 
 ENTRYPOINT ["/buzz"]

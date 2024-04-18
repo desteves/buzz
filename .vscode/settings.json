@@ -1,4 +1,5 @@
 {
     "terminal.integrated.accessibleViewFocusOnCommandExecution": true,
-    "terminal.integrated.accessibleViewPreserveCursorPosition": true
+    "terminal.integrated.accessibleViewPreserveCursorPosition": true,
+    "accessibility.accessibleView.closeOnKeyPress": false
 }

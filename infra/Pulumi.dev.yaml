@@ -1,9 +1,9 @@
 config:
+# https://app.pulumi.com/zephyr/teams/Temp1P
+
   gcp:project: "wide-pulsar-407202"
 
-#  gcp:cloudrun:Service (buzz):
-#     error: 1 error occurred:
-#         * Error creating Service: googleapi: Error 403: Permission 'run.services.create' denied on resource X.
+environment:
+- buzz-dev-infra
 
-# environment:
-# - buzz-dev-infra
+# 

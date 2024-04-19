@@ -1,6 +1,6 @@
 # Buzz
 
-A chatGPT-powered Golang app that is gated with Google Auth (OAuth). 
+A Gemini-powered Golang app that is gated with Google Auth (OAuth). 
 
 This app also works with [Pulumi ESC](https://www.pulumi.com/product/esc/) for secrets management. [Pulumi ESC](https://www.pulumi.com/product/esc/) integrates with 1Password and many others. To configure Pulumi ESC with 1Password define an environment following the syntax shown [here](https://www.pulumi.com/docs/esc/providers/1password-secrets/). Example for the `buzz-dev-environment` Environment:
 

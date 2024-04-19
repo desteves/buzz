@@ -1,0 +1,32 @@
+name: branch
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+  workflow_dispatch:
+
+jobs:
+  pulumi-preview:
+    name: pulumi-preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 'latest'
+
+      - name: Install Dependencies
+        working-directory: ./infra
+        run: npm install
+
+      - uses: pulumi/actions@v5
+        with:
+          command: preview
+          stack-name: zephyr/buzz/d3v # UPDATE THIS
+          work-dir: ./infra
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_ACCESS_TOKEN }}

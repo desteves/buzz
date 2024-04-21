@@ -3,7 +3,7 @@ name: workshop-1pass-esc
 on:
   push:
     paths:
-      - '1password-pulumi-esc/infra/*'
+      - 'infra/*'
 
 jobs:
   build:
@@ -22,6 +22,6 @@ jobs:
         with:
           command: up
           stack-name: pulumi-sandbox-diana/buzz/prod
-          work-dir: .1password-pulumi-esc/infra
+          work-dir: ./infra
         env:
           PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_SANDBOX_DIANA__TEAMS__PROD }}

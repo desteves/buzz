@@ -10,7 +10,7 @@ on:
 #       - 'infra/*'
 
 jobs:
-  build:
+  workshop-1pass-esc:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code

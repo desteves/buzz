@@ -1,98 +1,132 @@
-# Buzz
+# Managing team secrets with 1Password & Pulumi ESC
 
-A Gemini-powered Golang app that is gated with Google Auth (OAuth). 
+Platform engineering teams need to be able to fetch secrets at runtime, especially when managing multi-cloud and multi-service deployments with Pulumi. In this workshop, we’ll show you how Pulumi ESC works with 1Password to ensure secrets are securely made available to approved team members and deployments.
 
-This app also works with [Pulumi ESC](https://www.pulumi.com/product/esc/) for secrets management. [Pulumi ESC](https://www.pulumi.com/product/esc/) integrates with 1Password and many others. To configure Pulumi ESC with 1Password define an environment following the syntax shown [here](https://www.pulumi.com/docs/esc/providers/1password-secrets/). Example for the `buzz-dev-environment` Environment:
+## Goals
 
-```yaml
-values:
-  1password:
-    secrets:
-      fn::open::1password-secrets:
-        login:
-          serviceAccountToken:
-            fn::secret:
-              ciphertext: ZXN...= // not shown
-        get:
-          google_oauth_client_id:
-            ref: "op://dev-environment/buzz/username"
-          google_oauth_client_secret:
-            ref: "op://dev-environment/buzz/credential"
-          docker_pat:
-            ref: "op://dev-environment/dockerhub/password"
-          docker_usr:
-            ref: "op://dev-environment/dockerhub/username"
-  environmentVariables:
-    GOOGLE_OAUTH_CLIENT_ID: ${1password.secrets.google_oauth_client_id}
-    GOOGLE_OAUTH_CLIENT_SECRET: ${1password.secrets.google_oauth_client_secret}
-    DOCKER_PAT: ${1password.secrets.docker_pat}
-    DOCKER_USR: ${1password.secrets.docker_usr}
+- How to store secrets in 1Password
+- Configuring Pulumi ESC to work with 1Password and controlling access for approved team members
+- Retrieving secrets automatically at runtime from your Infrastructure as Code deployments.
 
-```
+[link to event](https://www.pulumi.com/resources/managing-team-secrets-1password-pulumi-esc/) 
 
+## Outline
 
-## Prereqs
+- Intro to Pulumi ESC
+- Intro to 1Password + Developer Tools
+- Overview of Pulumi ESC + 1Password
+- Demo 1
+- Pulumi for Platform Teams
+- Demo 2
+- Other uses cases
+- CTA
+- Q&a
 
-- Configured Google Project w/ OAuth and matching callback URL
-- Env vars: `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` with correct values
-- `DOCKER_DEFAULT_PLATFORM=linux/amd64`
+## Pre-reqs for the demo/s
 
-## Run
+- Google OAuth creds available
+- Gemini API Key available
+- DockerHub credentials
+- Cloudflare account and configured domain
+- 1Password account
+- Pulumi Cloud account
 
-### From source
+- Go and Docker installed locally
 
-```bash
-$ cd app
-####################################################
-# sans secrets management, set envrs locally
-$ go run main.go
-####################################################
-# OR with pulumi esc + 1password integration ✨🔐✨ #
-# I have defined the environment buzz-dev-environment 
-$ esc run buzz-dev-environment go run main.go
-####################################################
-```
+## Demo 1 - Environment variables in a golang web app
 
-### From docker image
+- Partner shows creating vault, adding secrets, creating a service account
+- Show configuring ESC Environment with 1Password provider, `pulumi-esc-dev`
+- Show auditing and RBAC Pulumi tokens
+- Show golang application working with external secrets without any code change
 
 ```bash
-####################################################
-# sans secrets management, set envrs locally
-$ docker run --platform linux/amd64  -p 8000:8000  -e GOOGLE_OAUTH_CLIENT_ID=my_id -e GOOGLE_OAUTH_CLIENT_SECRET=my_secret_value nullstring/buzz:dev
-####################################################
-# OR with pulumi esc + 1password integration ✨🔐✨ #
-# I have defined the environment buzz-dev-environment 
-$ esc run buzz-dev-environment  -- bash -c 'docker run --platform linux/amd64  -p 8000:8000  -e GOOGLE_OAUTH_CLIENT_ID=$GOOGLE_OAUTH_CLIENT_ID -e GOOGLE_OAUTH_CLIENT_SECRET=$GOOGLE_OAUTH_CLIENT_SECRET nullstring/buzz:dev'
-####################################################
+# use your business-critical org
+pulumi org set-default pulumi-sandbox-diana 
+pulumi logout
+pulumi login # provide the team access token
+
+# verify env opens
+esc env open pulumi-sandbox-diana/pulumi-esc-dev
+
+cd solution/app
+esc run pulumi-sandbox-diana/pulumi-esc-dev go run .
+
+open http://localhost:8000/
+
+# complete the google oaut, copy token from the terminal, 
+# paste in the field along with a phrase, buzz it
+# ta da!
 ```
 
-## Build image
+## Demo 2 - Multi-cloud deployment pipeline + GCP OIDC
+
+- Show creating a new ESC env with inheritance and GCP OIDC dynamic credentials
+- Show IaC Pulumi program with ESC configuration, `pulumi-esc-prod`
+- Show pushing code on GH and GHA using the ESC Config to deploy the infra
 
 ```bash
-$ cd app
+# use your business-critical org
+pulumi org set-default pulumi-sandbox-diana 
+pulumi logout
+pulumi login # provide the team access token
 
-####################################################
-# sans secrets management, provide creds locally   #
-$ docker login
-####################################################
-# OR with pulumi esc + 1password integration ✨🔐✨ #
-# I have defined the environment buzz-dev-environment 
-$ esc run buzz-dev-environment  -- bash -c 'echo "$DOCKER_PAT" | docker login -u $DOCKER_USR --password-stdin'
-####################################################
+cd solution/infra
 
-$ TAG="nullstring/buzz:dev"
-$ docker build . -t $TAG
-$ docker push $TAG
+esc open  pulumi-sandbox-diana/oidc-gcp
+esc open  pulumi-sandbox-diana/pulumi-esc-prod
+# Ensure all these are granted access by adding each to the service account subject
+
+pulumi:environments:org:pulumi-sandbox-diana:env:pulumi-esc-prod
+pulumi:environments:org:pulumi-sandbox-diana:env:oidc-gcp
+pulumi:environments:org:pulumi-sandbox-diana:env:pulumi-esc-prod:<yaml>
+pulumi:environments:org:pulumi-sandbox-diana:env:oidc-gcp:<yaml>
+pulumi:environments:org:pulumi-sandbox-diana:env:<yaml>
+pulumi:deploy:org:pulumi-sandbox-diana:project:buzz:stack:prod:operation:preview:scope:write
+pulumi:deploy:org:pulumi-sandbox-diana:project:buzz:stack:prod:operation:update:scope:write
+pulumi:deploy:org:pulumi-sandbox-diana:project:buzz:stack:prod:operation:refresh:scope:write
+pulumi:deploy:org:pulumi-sandbox-diana:project:buzz:stack:prod:operation:destroy:scope:write
+
+pulumi stack init pulumi-sandbox-diana/buzz/prod
+pulumi stack select pulumi-sandbox-diana/buzz/prod
+
 ```
 
-## Deploy to GCP (Work in progress)
+## SetUp
 
-```bash
-$ cd infra
-$ pulumi up
+```
+1P
+
+dev-vault
+- Google OAuth 2.0 App creds
+- Google Gemini API Key
+- 1P Service Account to read self-vault
+- Pulumi Cloud-scoped team token
+
+test-vault
+- Dockerhub creds
+- Cloudflare API Token
+- 1P Service Account to read self-vault
+- Pulumi Cloud-scoped team token
+
+ESC
+
+pulumi-esc-dev
+- 1Pass integration for dev-vault
+
+oidc-gcp
+- GCP OIDC config
+
+pulumi-esc-prod
+- inherit pulumi-esc-dev
+- inherit oidc-gcp
+- 1Pass integration for test-vault
 
 ```
 
-## Credits
+## Future Work (research required)
 
-- OAuth piece of code originates from this [example](https://www.kungfudev.com/blog/2018/07/10/oauth2-example-with-go).
+- Use Github Provider to create the repo w/ the Pulumi Cloud secret
+- Use the 1Password Provider (if/when GAs) to store the 1Password creds and create appropiate Service Accounts
+- Use a Dedicated Pulumi Cloud org and GCP Project 
+- Create OAuth 2.0 Client ID + OAuth consent screen + OIDC GCP using a Pulumi Program with the Google Cloud provider

@@ -7,7 +7,6 @@ import (
 	"github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
 	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp/cloudrun"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
 const APPNAME = "buzz"
@@ -15,34 +14,39 @@ const APPNAME = "buzz"
 func main() {
 	// Create a new Pulumi project
 	pulumi.Run(func(ctx *pulumi.Context) error {
-		// conf := config.New(ctx, "buzz")
-
-		username := os.Getenv("DOCKER_USR") //conf.Require("DOCKER_USR")
-		password := os.Getenv("DOCKER_PAT") //conf.RequireSecret("DOCKER_PAT")
-
-		currentStackName := ctx.Stack()
 
 		// Create a Docker image from a Dockerfile and push it to Docker Hub.
+		username := os.Getenv("DOCKER_USR")
+		currentStackName := ctx.Stack()
+
 		image, err := docker.NewImage(ctx, APPNAME, &docker.ImageArgs{
 			Build: &docker.DockerBuildArgs{
-				Platform: pulumi.String("linux/amd64"),
-				Context:  pulumi.String("../app"), // Path to the directory with Dockerfile and source.
+				Platform:   pulumi.String("linux/amd64"),
+				Context:    pulumi.String("../app"), // Path to the directory with Dockerfile and source.
+				Dockerfile: pulumi.String(`../app/Dockerfile`),
 			},
-			ImageName: pulumi.Sprintf(username + "/" + APPNAME + ":" + currentStackName),
+			ImageName: pulumi.Sprintf("docker.io/%s/%s:%s", username, APPNAME, currentStackName),
 			SkipPush:  pulumi.Bool(false),
 			Registry: &docker.RegistryArgs{
 				Server:   pulumi.String("docker.io"), // Docker Hub server.
 				Username: pulumi.String(username),
-				Password: pulumi.String(password),
+				Password: pulumi.String(os.Getenv("DOCKER_PAT")),
 			},
 		})
 		if err != nil {
 			return err
 		}
 
+		// New-ish Cloud Run feature in action :)
+		googleProject := os.Getenv("GOOGLE_PROJECT")
+		region := os.Getenv("GOOGLE_REGION")
+		deterministicURL := "https://" + APPNAME + "-" + googleProject + "." + region + ".run.app"
+		ctx.Export("URL", pulumi.String(deterministicURL))
 		// Create a new Cloud Run Service using the image
 		service, err := cloudrun.NewService(ctx, APPNAME, &cloudrun.ServiceArgs{
-			Location: pulumi.String("us-central1"),
+			// https://www.pulumi.com/docs/concepts/resources/names/
+			Name:     pulumi.String(APPNAME), // overrides autonaming
+			Location: pulumi.String(region),
 			Template: &cloudrun.ServiceTemplateArgs{
 				Spec: &cloudrun.ServiceTemplateSpecArgs{
 					Containers: cloudrun.ServiceTemplateSpecContainerArray{
@@ -53,69 +57,80 @@ func main() {
 									ContainerPort: pulumi.Int(8000),
 								},
 							},
+							Envs: cloudrun.ServiceTemplateSpecContainerEnvArray{
+								&cloudrun.ServiceTemplateSpecContainerEnvArgs{
+									Name:  pulumi.String("GOOGLE_OAUTH_CLIENT_ID"),
+									Value: pulumi.String(os.Getenv("GOOGLE_OAUTH_CLIENT_ID")),
+								},
+								&cloudrun.ServiceTemplateSpecContainerEnvArgs{
+									Name:  pulumi.String("GOOGLE_OAUTH_CLIENT_SECRET"),
+									Value: pulumi.String(os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET")),
+								},
+								&cloudrun.ServiceTemplateSpecContainerEnvArgs{
+									Name:  pulumi.String("GEMINI_API_KEY"),
+									Value: pulumi.String(os.Getenv("GEMINI_API_KEY")),
+								},
+								&cloudrun.ServiceTemplateSpecContainerEnvArgs{
+									Name:  pulumi.String("REDIR"),
+									Value: pulumi.String(deterministicURL),
+								},
+							},
 						},
 					},
 				},
 			},
+		}, pulumi.DependsOn([]pulumi.Resource{image}), pulumi.DeleteBeforeReplace(true))
+		if err != nil {
+			return err
+		}
+
+		// Create an IAM member to make the service publicly accessible.
+		_, err = cloudrun.NewIamMember(ctx, "invoker", &cloudrun.IamMemberArgs{
+			Service:  service.Name,
+			Location: service.Location,
+			Role:     pulumi.String("roles/run.invoker"),
+			Member:   pulumi.String("allUsers"),
 		})
 		if err != nil {
 			return err
 		}
 
-		// Export the URL
-		ctx.Export("url", service.Statuses.Index(pulumi.Int(0)).Url())
-
 		// Create Cloudflare CDN
-		if currentStackName == "prod" {
-
-			conf := config.New(ctx, "cloudflare")
-
+		if currentStackName == "feature-cdn" {
 			// Create a new Cloudflare CDN
-			// Configure your Cloudflare Zone ID here.
-			zoneID := conf.Require("zoneID")
-			domain := conf.Require("domain")
-			sub := conf.Require("sub")
-			gcp := config.New(ctx, "gcp")
-			//  For example, if you are using Cloudflare CDN, you should
-			// turn off the "Always use https" option in the "Edge Certificates" tab of the SSL/TLS tab.
+			zoneID := os.Getenv("CLOUDFLARE_ZONE")
+			// domain := os.Getenv("CLOUDFLARE_DOMAIN")
 
-			_, err = cloudrun.NewDomainMapping(ctx, "buzz", &cloudrun.DomainMappingArgs{
-				Location: pulumi.String("us-central1"),
-				Name:     pulumi.String(sub + "." + domain),
-				Metadata: &cloudrun.DomainMappingMetadataArgs{
-					Namespace: pulumi.String(gcp.Require("project")),
-				},
-				Spec: &cloudrun.DomainMappingSpecArgs{
-					RouteName: service.Name,
-				},
-			})
-			if err != nil {
-				return err
-			}
+			// // Create a new domain mapping
+			// _, err = cloudrun.NewDomainMapping(ctx, APPNAME, &cloudrun.DomainMappingArgs{
+			// 	Location: pulumi.String(region),
+			// 	Name:     pulumi.String(APPNAME + "." + domain),
+			// 	Metadata: &cloudrun.DomainMappingMetadataArgs{
+
+			// 		Namespace: pulumi.String(googleProject),
+			// 	},
+			// 	Spec: &cloudrun.DomainMappingSpecArgs{
+			// 		RouteName: service.Name,
+			// 	},
+			// 	//  because it doesn't support updates
+			// }, pulumi.ReplaceOnChanges([]string{"*"}),
+			// )
+			// if err != nil {
+			// 	return err
+			// }
 
 			// Set the DNS record for the CDN.
-			_, err := cloudflare.NewRecord(ctx, "cdnRecord", &cloudflare.RecordArgs{
-				ZoneId:  pulumi.String(zoneID),  // Replace with your actual Zone ID
-				Name:    pulumi.String(sub),     // The subdomain or record name
-				Type:    pulumi.String("CNAME"), // Typically a CNAME for CDN usage
-				Value:   pulumi.String(domain),  // The value of the record, like a CDN endpoint
-				Proxied: pulumi.Bool(true),      // Set to true to proxy traffic through Cloudflare (provides CDN and DDoS protection)
+			_, err := cloudflare.NewRecord(ctx, APPNAME, &cloudflare.RecordArgs{
+				ZoneId:  pulumi.String(zoneID),                 // Replace with your actual Zone ID
+				Name:    pulumi.String(APPNAME),                // The subdomain or record name
+				Type:    pulumi.String("CNAME"),                // Typically a CNAME for CDN usage
+				Value:   pulumi.String("ghs.googlehosted.com"), // The value of the record, like a CDN endpoint
+				Proxied: pulumi.Bool(false),                    // Set to true to proxy traffic through Cloudflare (provides CDN and DDoS protection)
 			})
 			if err != nil {
 				return err
 			}
-
-			// Enable Argo Smart Routing on the zone.
-			_, err = cloudflare.NewArgo(ctx, "cdnArgo", &cloudflare.ArgoArgs{
-				ZoneId:       pulumi.String(zoneID),
-				SmartRouting: pulumi.String("on"),
-			})
-			if err != nil {
-				return err
-			}
-
 		}
-
 		return nil
 	})
 }

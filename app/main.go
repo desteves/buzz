@@ -25,7 +25,7 @@ import (
 
 func New() http.Handler {
 	mux := http.NewServeMux()
-	// Root
+	// Roots
 	mux.Handle("/", http.FileServer(http.Dir("templates/")))
 
 	// OAuth with Google
@@ -38,10 +38,18 @@ func New() http.Handler {
 	return mux
 }
 
+func getEnvOrDefault(envVarName, defaultValue string) string {
+	value := os.Getenv(envVarName)
+	if value == "" {
+		log.Printf("Environment variable %s not set, using default value %s", envVarName, defaultValue)
+		return defaultValue
+	}
+	return value
+}
+
 const (
 	PORT      = "8000"
 	ADDR      = ":" + PORT
-	REDIRECT  = "http://localhost" + ADDR + "/auth/google/callback"
 	OAUTH_API = "https://www.googleapis.com/oauth2/v2/userinfo?access_token="
 )
 
@@ -52,7 +60,6 @@ func parseResponse(resp *genai.GenerateContentResponse) (string, error) {
 	for _, cand := range resp.Candidates {
 		if cand.Content != nil {
 			for _, part := range cand.Content.Parts {
-				// fmt.Println(part)
 				formattedContent += fmt.Sprintf("%s\n", part)
 			}
 		} else {
@@ -64,14 +71,14 @@ func parseResponse(resp *genai.GenerateContentResponse) (string, error) {
 
 func cleanInput(input string) string {
 	// Define a regex pattern to match non-alphanumeric characters and diacritics
-	pattern := regexp.MustCompile(`[^a-zA-Z0-9\\s]+`)
+	pattern := regexp.MustCompile(`[^a-zA-Z\\s]+`)
 
 	// Replace non-alphanumeric characters and diacritics with an empty string
 	cleaned := pattern.ReplaceAllStringFunc(input, func(s string) string {
 		var result []rune
 		for _, r := range s {
 			// Check if the rune is alphanumeric or whitespace
-			if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
+			if unicode.IsLetter(r) || unicode.IsSpace(r) {
 				result = append(result, r)
 			}
 		}
@@ -102,7 +109,6 @@ func main() {
 }
 
 var googleOauthConfig = &oauth2.Config{
-	RedirectURL:  REDIRECT,
 	ClientID:     os.Getenv("GOOGLE_OAUTH_CLIENT_ID"),
 	ClientSecret: os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
 	Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
@@ -138,7 +144,7 @@ func validateToken(accessToken string) (bool, error) {
 		return true, nil
 	} else {
 		errorDescription := tokenInfo["error_description"].(string)
-		return false, fmt.Errorf("Token validation failed: %s", errorDescription)
+		return false, fmt.Errorf("token validation failed: %s", errorDescription)
 	}
 }
 
@@ -161,7 +167,7 @@ func submitEndpoint(w http.ResponseWriter, r *http.Request) {
 	p := data.P
 
 	input := cleanInput(p)
-	log.Print(input)
+	// log.Print(input)
 
 	// // Validate the access token
 	_, err := validateToken(a)
@@ -190,13 +196,15 @@ func submitEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// w.Header().Set("Content-Type", "text/html")
-	fmt.Fprint(w, ` <div class="centered">`+html+`</div>`)
+	fmt.Fprint(w, html)
 
 }
 
 func oauthGoogleLogin(w http.ResponseWriter, r *http.Request) {
 	oauthState := generateStateOauthCookie(w)
-
+	host := getEnvOrDefault("REDIR", "http://localhost:8000")
+	redirectUrl := host + "/auth/google/callback"
+	googleOauthConfig.RedirectURL = redirectUrl
 	u := googleOauthConfig.AuthCodeURL(oauthState)
 	http.Redirect(w, r, u, http.StatusTemporaryRedirect)
 }
@@ -216,9 +224,15 @@ func oauthGoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
-
+	dataBytes, err := json.Marshal(data)
+	if err != nil {
+		log.Println(err.Error())
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
 	// call AI -- TODO
-	w.Write(data)
+	http.FileServer(http.Dir("templates/"))
+	w.Write(dataBytes)
 
 }
 
@@ -234,31 +248,54 @@ func generateStateOauthCookie(w http.ResponseWriter) string {
 	return state
 }
 
-func getUserDataFromGoogle(code string) ([]byte, error) {
+func getUserDataFromGoogle(code string) (Profile, error) {
 	// Use code to get token and get user info from Google.
-
+	host := getEnvOrDefault("REDIR", "http://localhost:8000")
+	redirectUrl := host + "/auth/google/callback"
+	googleOauthConfig.RedirectURL = redirectUrl
 	token, err := googleOauthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		return nil, fmt.Errorf("code exchange wrong: %s", err.Error())
+		return Profile{}, fmt.Errorf("code exchange wrong: %s", err.Error())
 	}
 
 	// Extract the OAuth2 token
 	accessToken := token.AccessToken
 	// refreshToken := token.RefreshToken/
-	expiry := token.Expiry
+	// expiry := token.Expiry.RFC3339
 
-	log.Printf("Access Token: %s\n", accessToken)
+	// log.Printf("Access Token: %s\n", accessToken)
 	// log.Printf( "Refresh Token: %s\n", refreshToken)
-	log.Printf("Expiry: %s\n", expiry)
+	// log.Printf("Expiry: %s\n", expiry)
 
 	response, err := http.Get(OAUTH_API + token.AccessToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed getting user info: %s", err.Error())
+		return Profile{}, fmt.Errorf("failed getting user info: %s", err.Error())
 	}
 	defer response.Body.Close()
 	contents, err := io.ReadAll(response.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed read response: %s", err.Error())
+		return Profile{}, fmt.Errorf("failed read response: %s", err.Error())
 	}
-	return contents, nil
+	myProfile := Profile{}
+	err = json.Unmarshal(contents, &myProfile)
+	if err != nil {
+		return Profile{}, fmt.Errorf("invalid response: %s", err.Error())
+	}
+	myProfile.AccessToken = accessToken
+	return myProfile, nil
+	// return contents
+	// return append(contents, []byte(", { accessToken:"+accessToken+"}")...), nil
+}
+
+type Profile struct {
+	ID            string `json:"id"`
+	Email         string `json:"email"`
+	VerifiedEmail bool   `json:"verified_email"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+	Locale        string `json:"locale"`
+	Hd            string `json:"hd"`
+	AccessToken   string `json:"accessToken"`
 }

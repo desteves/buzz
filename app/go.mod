@@ -4,13 +4,13 @@ go 1.22.1
 
 require (
 	golang.org/x/oauth2 v0.19.0
-	google.golang.org/api v0.174.0
+	google.golang.org/api v0.175.0
 )
 
 require (
 	cloud.google.com/go v0.112.2 // indirect
 	cloud.google.com/go/ai v0.4.0 // indirect
-	cloud.google.com/go/auth v0.2.1 // indirect
+	cloud.google.com/go/auth v0.2.2 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.1 // indirect
 	cloud.google.com/go/longrunning v0.5.6 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect

@@ -95,7 +95,7 @@ func main() {
 			return err
 		}
 
-		// Create Cloudflare CDN
+		// Create Cloudflare CDN when in prod
 		if currentStackName == "prod" {
 			// Create a new Cloudflare CDN
 			zoneID := os.Getenv("CLOUDFLARE_ZONE")

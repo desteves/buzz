@@ -1,0 +1,26 @@
+name: workshop-1pass-esc
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  workshop-1pass-esc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+        
+      - name: Deploy Pulumi
+        uses: pulumi/actions@v5
+        with:
+          command: up
+          stack-name: pulumi-sandbox-diana/buzz/prod
+          work-dir: ./infra
+        env:
+          PULUMI_ACCESS_TOKEN: ${{ secrets.PULUMI_SANDBOX_DIANA__TEAMS__PROD }}

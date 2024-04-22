@@ -1,9 +1,0 @@
-config:
-# https://app.pulumi.com/zephyr/teams/Temp1P
-
-  gcp:project: "wide-pulsar-407202"
-
-environment:
-- buzz-dev-infra
-
-# 

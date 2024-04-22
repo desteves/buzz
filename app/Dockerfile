@@ -22,6 +22,6 @@ COPY --from=build-stage /app/templates templates
 ENV GOOGLE_OAUTH_CLIENT_ID=abc123 \
     GOOGLE_OAUTH_CLIENT_SECRET=xyz789 \
     GEMINI_API_KEY=gemini123  \
-    REDIR=http://localhost 
+    REDIR=http://localhost
 
 ENTRYPOINT ["/app/buzz"]

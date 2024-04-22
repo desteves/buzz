@@ -96,7 +96,7 @@ func main() {
 		}
 
 		// Create Cloudflare CDN
-		if currentStackName == "feature-cdn" {
+		if currentStackName == "prod" {
 			// Create a new Cloudflare CDN
 			zoneID := os.Getenv("CLOUDFLARE_ZONE")
 			// domain := os.Getenv("CLOUDFLARE_DOMAIN")

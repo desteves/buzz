@@ -15,6 +15,8 @@ func main() {
 	// Create a new Pulumi project
 	pulumi.Run(func(ctx *pulumi.Context) error {
 
+
+		// hello
 		// Create a Docker image from a Dockerfile and push it to Docker Hub.
 		username := os.Getenv("DOCKER_USR")
 		currentStackName := ctx.Stack()

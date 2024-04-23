@@ -99,6 +99,7 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Initialize the AI client
+	// new comment
 	var ctx = context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
 	if err != nil {

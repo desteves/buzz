@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/pulumi/pulumi-cloudflare/sdk/v5/go/cloudflare"
-	"github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
+	"github.com/pulumi/pulumi-docker-build/sdk/go/dockerbuild"
 	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp/cloudrun"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -18,18 +18,31 @@ func main() {
 		username := os.Getenv("DOCKER_USR")
 		currentStackName := ctx.Stack()
 
-		image, err := docker.NewImage(ctx, APPNAME, &docker.ImageArgs{
-			Build: &docker.DockerBuildArgs{
-				Platform:   pulumi.String("linux/amd64"),
-				Context:    pulumi.String("../app"), // Path to the directory with Dockerfile and source.
-				Dockerfile: pulumi.String(`../app/Dockerfile`),
+		// Build and push an image to ECR with inline caching.
+		image, err := dockerbuild.NewImage(ctx, APPNAME, &dockerbuild.ImageArgs{
+			// Tag our image with our ECR repository's address.
+			Tags: pulumi.StringArray{
+				pulumi.Sprintf("docker.io/%s/%s:%s", username, APPNAME, currentStackName),
 			},
-			ImageName: pulumi.Sprintf("docker.io/%s/%s:%s", username, APPNAME, currentStackName),
-			SkipPush:  pulumi.Bool(false),
-			Registry: &docker.RegistryArgs{
-				Server:   pulumi.String("docker.io"), // Docker Hub server.
-				Username: pulumi.String(username),
-				Password: pulumi.String(os.Getenv("DOCKER_PAT")),
+			Context: &dockerbuild.BuildContextArgs{
+				Location: pulumi.String("../app"),
+			},
+			Dockerfile: &dockerbuild.DockerfileArgs{
+				Location: pulumi.String("../app/Dockerfile"),
+			},
+			// Build the image for AMD.
+			Platforms: dockerbuild.PlatformArray{
+				dockerbuild.Platform_Linux_amd64,
+			},
+			// Push the final result to the registries
+			Push: pulumi.Bool(false),
+			// Provide Registry credentials.
+			Registries: dockerbuild.RegistryArray{
+				&dockerbuild.RegistryArgs{
+					Address:  pulumi.String("docker.io"), // Docker Hub server.
+					Password: pulumi.String(os.Getenv("DOCKER_PAT")),
+					Username: pulumi.String(username),
+				},
 			},
 		})
 		if err != nil {
@@ -50,7 +63,7 @@ func main() {
 				Spec: &cloudrun.ServiceTemplateSpecArgs{
 					Containers: cloudrun.ServiceTemplateSpecContainerArray{
 						&cloudrun.ServiceTemplateSpecContainerArgs{
-							Image: image.ImageName,
+							Image: image.Ref,
 							Ports: cloudrun.ServiceTemplateSpecContainerPortArray{
 								&cloudrun.ServiceTemplateSpecContainerPortArgs{
 									ContainerPort: pulumi.Int(8000),

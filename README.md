@@ -8,8 +8,6 @@ Platform engineering teams need to be able to fetch secrets at runtime, especial
 - Configuring Pulumi ESC to work with 1Password and controlling access for approved team members
 - Retrieving secrets automatically at runtime from your Infrastructure as Code deployments.
 
-[link to event](https://www.pulumi.com/resources/managing-team-secrets-1password-pulumi-esc/) 
-
 ## Outline
 
 - Intro to Pulumi ESC
@@ -24,21 +22,20 @@ Platform engineering teams need to be able to fetch secrets at runtime, especial
 
 ## Pre-reqs for the demo/s
 
-- Google OAuth creds available
+- Google OAuth creds are available
 - Gemini API Key available
 - DockerHub credentials
 - Cloudflare account and configured domain
 - 1Password account
 - Pulumi Cloud account
-
 - Go and Docker installed locally
 
-## Demo 1 - Environment variables in a golang web app
+## Demo 1 - Environment variables in a Golang web app
 
 - Partner shows creating vault, adding secrets, creating a service account
 - Show configuring ESC Environment with 1Password provider, `pulumi-esc-dev`
 - Show auditing and RBAC Pulumi tokens
-- Show golang application working with external secrets without any code change
+- Show the Golang application working with external secrets without any code change
 
 ```bash
 # use your business-critical org
@@ -63,9 +60,10 @@ open http://localhost:8000/
 
 - Show creating a new ESC env with inheritance and GCP OIDC dynamic credentials
 - Show IaC Pulumi program with ESC configuration, `pulumi-esc-prod`
-- Show pushing code on GH and GHA using the ESC Config to deploy the infra
+- Show pushing code on GH and GHA using the ESC Config to deploy the infra.
 
 ```bash
+
 # use your business-critical org
 pulumi org set-default pulumi-sandbox-diana 
 pulumi logout
@@ -92,9 +90,9 @@ pulumi stack select pulumi-sandbox-diana/buzz/prod
 
 ```
 
-## SetUp
+## Set up
 
-```
+```plain
 1P
 
 dev-vault
@@ -121,12 +119,11 @@ pulumi-esc-prod
 - inherit pulumi-esc-dev
 - inherit oidc-gcp
 - 1Pass integration for test-vault
-
 ```
 
-## Future Work (research required)
+## Future Work
 
-- Use Github Provider to create the repo w/ the Pulumi Cloud secret
-- Use the 1Password Provider (if/when GAs) to store the 1Password creds and create appropiate Service Accounts
-- Use a Dedicated Pulumi Cloud org and GCP Project 
-- Create OAuth 2.0 Client ID + OAuth consent screen + OIDC GCP using a Pulumi Program with the Google Cloud provider
+- Use GitHub Provider to create the repo
+- Use the 1Password Provider to store the 1Password creds and create appropriate Service Accounts
+- Use a Dedicated Pulumi Cloud org and GCP Project
+- Create OAuth 2.0 Client ID + OAuth consent screen + OIDC GCP using a Pulumi Program with the Google Cloud provider.

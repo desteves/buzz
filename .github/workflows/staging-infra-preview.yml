@@ -4,6 +4,11 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
 jobs:
   staging-infra-preview:
     runs-on: ubuntu-latest
@@ -33,9 +38,6 @@ jobs:
           command: preview
           stack-name: pulumi-sandbox-diana/buzz/staging
           work-dir: ./infra
-          # (optional) A GitHub token that has access levels
-          # to allow the Action to comment on a PR. 
-          github-token: ${{ github.token }}
           comment-on-pr: true
           comment-on-summary: true
           edit-pr-comment: true

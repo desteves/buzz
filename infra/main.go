@@ -26,7 +26,7 @@ func main() {
 		image, err := dockerbuild.NewImage(ctx, APPNAME, &dockerbuild.ImageArgs{
 			// Tag our image with our ECR repository's address.
 			Tags: pulumi.StringArray{
-				pulumi.Sprintf("docker.io/%s/%s:%s", username, APPNAME, currentStackName),
+				pulumi.Sprintf("docker.io/%s/%s:%s", username, "buzz", currentStackName),
 			},
 			Context: &dockerbuild.BuildContextArgs{
 				Location: pulumi.String("../app"),

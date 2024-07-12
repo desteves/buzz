@@ -35,7 +35,7 @@ func main() {
 				dockerbuild.Platform_Linux_amd64,
 			},
 			// Push the final result to the registries
-			Push: pulumi.Bool(false),
+			Push: pulumi.Bool(true),
 			// Provide Registry credentials.
 			Registries: dockerbuild.RegistryArray{
 				&dockerbuild.RegistryArgs{

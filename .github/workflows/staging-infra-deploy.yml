@@ -33,7 +33,7 @@ jobs:
           organization: pulumi-sandbox-diana
           requested-token-type: urn:pulumi:token-type:access_token:organization
 
-      - name: preview infra
+      - name: deploy infra
         uses: pulumi/actions@v5
         with:
           command: up

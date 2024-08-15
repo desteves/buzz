@@ -9,20 +9,24 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const APPNAME = "buzz"
-
 func main() {
+
 	// Create a new Pulumi project
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		// Create a Docker image from a Dockerfile and push it to Docker Hub.
 		username := os.Getenv("DOCKER_USR")
 		currentStackName := ctx.Stack()
+		var APPNAME = "buzz"
+
+		if currentStackName != "prod" {
+			APPNAME += "-" + currentStackName
+		}
 
 		// Build and push an image to ECR with inline caching.
 		image, err := dockerbuild.NewImage(ctx, APPNAME, &dockerbuild.ImageArgs{
 			// Tag our image with our ECR repository's address.
 			Tags: pulumi.StringArray{
-				pulumi.Sprintf("docker.io/%s/%s:%s", username, APPNAME, currentStackName),
+				pulumi.Sprintf("docker.io/%s/%s:%s", username, "buzz", currentStackName),
 			},
 			Context: &dockerbuild.BuildContextArgs{
 				Location: pulumi.String("../app"),
@@ -107,41 +111,18 @@ func main() {
 			return err
 		}
 
-		// Create Cloudflare CDN when in prod
-		if currentStackName == "prod" {
-			// Create a new Cloudflare CDN
-			zoneID := os.Getenv("CLOUDFLARE_ZONE")
-			// domain := os.Getenv("CLOUDFLARE_DOMAIN")
-
-			// // Create a new domain mapping
-			// _, err = cloudrun.NewDomainMapping(ctx, APPNAME, &cloudrun.DomainMappingArgs{
-			// 	Location: pulumi.String(region),
-			// 	Name:     pulumi.String(APPNAME + "." + domain),
-			// 	Metadata: &cloudrun.DomainMappingMetadataArgs{
-
-			// 		Namespace: pulumi.String(googleProject),
-			// 	},
-			// 	Spec: &cloudrun.DomainMappingSpecArgs{
-			// 		RouteName: service.Name,
-			// 	},
-			// 	//  because it doesn't support updates
-			// }, pulumi.ReplaceOnChanges([]string{"*"}),
-			// )
-			// if err != nil {
-			// 	return err
-			// }
-
-			// Set the DNS record for the CDN.
-			_, err := cloudflare.NewRecord(ctx, APPNAME, &cloudflare.RecordArgs{
-				ZoneId:  pulumi.String(zoneID),                 // Replace with your actual Zone ID
-				Name:    pulumi.String(APPNAME),                // The subdomain or record name
-				Type:    pulumi.String("CNAME"),                // Typically a CNAME for CDN usage
-				Value:   pulumi.String("ghs.googlehosted.com"), // The value of the record, like a CDN endpoint
-				Proxied: pulumi.Bool(false),                    // Set to true to proxy traffic through Cloudflare (provides CDN and DDoS protection)
-			})
-			if err != nil {
-				return err
-			}
+		// Create a new Cloudflare CDN
+		zoneID := os.Getenv("CLOUDFLARE_ZONE")
+		// Set the DNS record for the CDN.
+		_, err = cloudflare.NewRecord(ctx, APPNAME, &cloudflare.RecordArgs{
+			ZoneId:  pulumi.String(zoneID),                 // Replace with your actual Zone ID
+			Name:    pulumi.String(APPNAME),                // The subdomain or record name
+			Type:    pulumi.String("CNAME"),                // Typically a CNAME for CDN usage
+			Value:   pulumi.String("ghs.googlehosted.com"), // The value of the record, like a CDN endpoint
+			Proxied: pulumi.Bool(false),                    // Set to true to proxy traffic through Cloudflare (provides CDN and DDoS protection)
+		})
+		if err != nil {
+			return err
 		}
 		return nil
 	})

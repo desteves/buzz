@@ -40,7 +40,6 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.5.1 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/generative-ai-go v0.18.0
 	google.golang.org/protobuf v1.34.2 // indirect
 )

@@ -62,7 +62,7 @@ func UpdateFormContent(node *html.Node, targetID string, newContent string) {
 	}
 }
 
-// Find the div with a given ID and update its content
+// UpdateDivContent finds the div with a given ID and updates its content
 func UpdateDivContent(node *html.Node, targetID string, newContent string) {
 	if node.Type == html.ElementNode && node.Data == "div" {
 		// Check if the div has the desired ID

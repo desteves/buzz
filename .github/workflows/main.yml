@@ -1,0 +1,48 @@
+name: main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - 'app/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      INFRA_DIR: './infra'
+      GO_VERSION: '1.22'
+      PULUMI_ORG: 'pulumi-sandbox-diana'
+      PULUMI_STACK: 'pulumi-sandbox-diana/buzz/test'
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v4
+
+      - name: set up go
+        uses: actions/setup-go@v5
+        with:
+          go-version:  ${{ env.GO_VERSION }}
+  
+      - name: auth pulumi cloud
+        uses: pulumi/auth-actions@v1
+        with:
+          organization: ${{ env.PULUMI_ORG }}
+          requested-token-type: urn:pulumi:token-type:access_token:organization
+
+      - name: deploy app and infra
+        uses: pulumi/actions@v5
+        with:
+          command: up
+          stack-name: ${{ env.PULUMI_STACK }}
+          work-dir: ${{ env.INFRA_DIR }}
+          comment-on-pr: true
+          comment-on-summary: true
+          edit-pr-comment: true

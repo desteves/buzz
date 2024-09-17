@@ -4,7 +4,6 @@
 FROM --platform=linux/amd64 golang AS build-stage
 WORKDIR /app
 COPY . ./
-# COPY templates ./templates
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o buzz
 
@@ -16,12 +15,12 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o buzz
 FROM --platform=linux/amd64 gcr.io/distroless/base-debian11 AS build-release-stage
 WORKDIR /app
 COPY --from=build-stage /app/buzz buzz
-COPY --from=build-stage /app/templates templates
+COPY --from=build-stage /app/static static
 
-#  Set environment variables, placeholders to indicate what the app needs
+#  Environment variables placeholders to indicate app needs
 ENV GOOGLE_OAUTH_CLIENT_ID=abc123 \
     GOOGLE_OAUTH_CLIENT_SECRET=xyz789 \
     GEMINI_API_KEY=gemini123  \
-    REDIR=http://localhost
+    REDIR=http://localhost:8000/app
 
 ENTRYPOINT ["/app/buzz"]

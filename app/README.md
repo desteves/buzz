@@ -5,7 +5,7 @@
 - Google OAuth creds avaialble
 - Gemini API Key available
 
-## Run localy
+## Run
 
 ### Sans secrets manager 🙈🙊🙊
 
@@ -24,7 +24,7 @@ go run .
 - Store your secrets in a new ESC Environment
 
   ```bash
-  ESC_ENV=buzz-app-env
+  ESC_ENV=buzz/app
   esc login
   esc env init $ESC_ENV
   esc env set $ESC_ENV --secret  environmentVariables.GEMINI_API_KEY 123abc
@@ -45,17 +45,13 @@ go run .
 - Configure a Pulumi ESC Environment to [reference the 1Password-stored secrets](https://www.pulumi.com/docs/esc/integrations/dynamic-secrets/1password-secrets/):
 
   ```bash
-  ESC_ENV=buzz-app-1p-env
+  ESC_ENV=buzz/app-1p
   esc login
   esc env init $ESC_ENV
   esc env edit $ESC_ENV
   ```
 
 - Paste the yaml contents below then save the changes
-
-  > [!IMPORTANT]
-  > Update the [secret `ref` syntax](https://developer.1password.com/docs/cli/secret-reference-syntax/) placeholders to match **your** 1Password Vault and items configuration
-  > Update the `serviceAccountToken` value
 
   ```yaml
   values:
@@ -78,8 +74,13 @@ go run .
     GEMINI_API_KEY: ${1password.secrets.gemini}
   ```
 
+> [!IMPORTANT]
+> Update the [secret `ref` syntax](https://developer.1password.com/docs/cli/secret-reference-syntax/) placeholders to match **your** 1Password Vault and items configuration
+> Update the `serviceAccountToken` value
+
 - Run the Buzz app
 
   ```bash
-  esc run buzz-app-1p-env go run .
+  ESC_ENV=buzz/app-1p
+  esc run $ESC_ENV go run .
   ```

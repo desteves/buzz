@@ -11,7 +11,8 @@ import (
 )
 
 type Gemini struct {
-	Model *genai.GenerativeModel
+	// Model *genai.GenerativeModel
+	Client *genai.Client
 }
 
 func NewGeminiProvider() *Gemini {
@@ -22,16 +23,15 @@ func NewGeminiProvider() *Gemini {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer client.Close()
-	model := client.GenerativeModel("gemini-pro")
-
-	return &Gemini{Model: model}
+	return &Gemini{Client: client}
 
 }
 
 func (g *Gemini) GenerateResponse(prompt string) (string, error) {
 
-	resp, err := g.Model.GenerateContent(context.Background(), genai.Text("Use the NATO phonetic alphabet to spell out this phrase: "+prompt+". Give me the response as an HTML table such that the first column is the letter and the second column is the word from the NATO phonetic alphabet."))
+	model := g.Client.GenerativeModel("gemini-pro")
+
+	resp, err := model.GenerateContent(context.Background(), genai.Text("Use the NATO phonetic alphabet to spell out this phrase: "+prompt+". Give me the response as an HTML table such that the first column is the letter and the second column is the word from the NATO phonetic alphabet."))
 	if err != nil {
 		log.Fatal(err)
 	}

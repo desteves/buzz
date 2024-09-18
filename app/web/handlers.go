@@ -23,7 +23,6 @@ func NewHandler() MuxHandler {
 
 	var m MuxHandler
 
-	// log.Printf("Adding routes")
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir("./static/")))
 	mux.HandleFunc("/auth/google/login", m.loginHandler)
@@ -51,7 +50,6 @@ func (m *MuxHandler) submitHandler(w http.ResponseWriter, r *http.Request) {
 	p := data.P
 
 	input := CleanInput(p)
-	// log.Print(input)
 
 	// // Validate the access token
 	// Define the validateToken function or import it from another package
@@ -60,13 +58,13 @@ func (m *MuxHandler) submitHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("invalid access token: %s", a)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
+	} else {
+		html, err := m.AIProvider.GenerateResponse(input)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Fprint(w, html)
 	}
-
-	html, err := m.AIProvider.GenerateResponse(input)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Fprint(w, html)
 
 }
 

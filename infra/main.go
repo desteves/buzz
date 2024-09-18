@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/pulumi/pulumi-cloudflare/sdk/v5/go/cloudflare"
@@ -15,18 +16,13 @@ func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		// Create a Docker image from a Dockerfile and push it to Docker Hub.
 		username := os.Getenv("DOCKER_USR")
-		currentStackName := ctx.Stack()
 		var APPNAME = "buzz"
-
-		if currentStackName != "prod" {
-			APPNAME += "-" + currentStackName
-		}
 
 		// Build and push an image to ECR with inline caching.
 		image, err := dockerbuild.NewImage(ctx, APPNAME, &dockerbuild.ImageArgs{
 			// Tag our image with our ECR repository's address.
 			Tags: pulumi.StringArray{
-				pulumi.Sprintf("docker.io/%s/%s:%s", username, "buzz", currentStackName),
+				pulumi.Sprintf("docker.io/%s/%s:latest", username, "buzz"),
 			},
 			Context: &dockerbuild.BuildContextArgs{
 				Location: pulumi.String("../app"),
@@ -53,11 +49,17 @@ func main() {
 			return err
 		}
 
+		if ctx.Stack() == "dev" {
+			fmt.Println("Skipping cloud deployment for dev stack...")
+			return nil
+		}
+
 		// New-ish Cloud Run feature in action :)
 		googleProject := os.Getenv("GOOGLE_PROJECT")
 		region := os.Getenv("GOOGLE_REGION")
 		deterministicURL := "https://" + APPNAME + "-" + googleProject + "." + region + ".run.app"
 		ctx.Export("URL", pulumi.String(deterministicURL))
+
 		// Create a new Cloud Run Service using the image
 		service, err := cloudrun.NewService(ctx, APPNAME, &cloudrun.ServiceArgs{
 			// https://www.pulumi.com/docs/concepts/resources/names/
@@ -119,7 +121,7 @@ func main() {
 			Name:    pulumi.String(APPNAME),                // The subdomain or record name
 			Type:    pulumi.String("CNAME"),                // Typically a CNAME for CDN usage
 			Value:   pulumi.String("ghs.googlehosted.com"), // The value of the record, like a CDN endpoint
-			Proxied: pulumi.Bool(false),                    // Set to true to proxy traffic through Cloudflare (provides CDN and DDoS protection)
+			Proxied: pulumi.Bool(false),                    // Set to true to proxy traffic through Cloudflare 
 		})
 		if err != nil {
 			return err

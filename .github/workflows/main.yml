@@ -15,13 +15,13 @@ permissions:
   id-token: write
 
 jobs:
-  deploy:
+  deploy-gcp:
     runs-on: ubuntu-latest
     env:
       INFRA_DIR: './infra'
       GO_VERSION: '1.22'
       PULUMI_ORG: 'pulumi-sandbox-diana'
-      PULUMI_STACK: 'pulumi-sandbox-diana/buzz/test'
+      PULUMI_STACK: 'pulumi-sandbox-diana/buzz/prod'
     steps:
       - name: checkout repo
         uses: actions/checkout@v4

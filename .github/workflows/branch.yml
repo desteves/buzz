@@ -14,13 +14,13 @@ permissions:
   id-token: write
 
 jobs:
-  preview:
+  create-image:
     runs-on: ubuntu-latest
     env:
       INFRA_DIR: './infra'
       GO_VERSION: '1.22'
       PULUMI_ORG: 'pulumi-sandbox-diana'
-      PULUMI_STACK: 'pulumi-sandbox-diana/buzz/test'
+      PULUMI_STACK: 'pulumi-sandbox-diana/buzz/dev'
     steps:
       - name: checkout repo
         uses: actions/checkout@v4
@@ -41,10 +41,10 @@ jobs:
           organization: ${{ env.PULUMI_ORG }}
           requested-token-type: urn:pulumi:token-type:access_token:organization
 
-      - name: preview resources
+      - name: building the app and uploading image
         uses: pulumi/actions@v5
         with:
-          command: preview
+          command: up
           stack-name: ${{ env.PULUMI_STACK }}
           work-dir: ${{ env.INFRA_DIR }}
           comment-on-pr: true

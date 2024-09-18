@@ -1,2 +1,2 @@
 environment:
-  - pulumi-esc-prod
+  - buzz/build

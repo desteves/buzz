@@ -120,7 +120,7 @@ func main() {
 			ZoneId:  pulumi.String(zoneID),                 // Replace with your actual Zone ID
 			Name:    pulumi.String(APPNAME),                // The subdomain or record name
 			Type:    pulumi.String("CNAME"),                // Typically a CNAME for CDN usage
-			Value:   pulumi.String("ghs.googlehosted.com"), // The value of the record, like a CDN endpoint
+			Content:   pulumi.String("ghs.googlehosted.com"), // The value of the record, like a CDN endpoint
 			Proxied: pulumi.Bool(false),                    // Set to true to proxy traffic through Cloudflare 
 		})
 		if err != nil {

@@ -1,26 +1,14 @@
 # syntax=docker/dockerfile:1
-
-# Build Code
-FROM golang AS build-stage
+FROM golang:1.23.1-alpine AS builder
 WORKDIR /app
 COPY . ./
 RUN go mod download
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o buzz
+RUN CGO_ENABLED=0 GOOS=linux go build -o buzz
 
-# Unit Test
-# FROM build-stage AS run-test-stage
-# RUN  go test --cover ./... 
-
-# Create Release 
-FROM gcr.io/distroless/base-debian11 AS build-release-stage
+FROM alpine AS release
 WORKDIR /app
-COPY --from=build-stage /app/buzz buzz
-COPY --from=build-stage /app/static static
-
-# Environment variables placeholders to indicate app needs
-# ENV GOOGLE_OAUTH_CLIENT_ID=abc123 \
-#     GOOGLE_OAUTH_CLIENT_SECRET=xyz789 \
-#     GEMINI_API_KEY=gemini123  \
-#     REDIR=http://localhost:8000/app
-
-ENTRYPOINT ["/app/buzz"]
+COPY --from=builder /app/buzz buzz
+COPY --from=builder /app/static static
+EXPOSE 8000
+ENV SERVER_ADDR=0.0.0.0:8000
+ENTRYPOINT ["./buzz"]

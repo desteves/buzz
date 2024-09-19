@@ -69,8 +69,11 @@ func (m *MuxHandler) submitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *MuxHandler) loginHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("loginHandler")
 	oauthState := m.OAuthProvider.GenerateCookie(w)
+	fmt.Println("oauthState: ", oauthState)
 	u := m.OAuthProvider.OAuthConfig().AuthCodeURL(oauthState)
+	fmt.Println("Redirecting to: ", u)
 	http.Redirect(w, r, u, http.StatusTemporaryRedirect)
 }
 
